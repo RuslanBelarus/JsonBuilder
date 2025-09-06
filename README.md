@@ -65,8 +65,7 @@ proj.AddChapter("Введение", "Это введение в проект.")
 proj.AddChapter("Основная часть", "Здесь основное содержание проекта.")
 
 # Добавляем ссылки
-proj.AddLink("Официальный сайт", "https://example.com")
-proj.AddLink("Репозиторий", "https://github.com/example")
+proj.AddLink("Ютюб", "https://youtube.com")
 
 # Генерируем HTML-файл и открываем его в браузере
 proj.Finish()
