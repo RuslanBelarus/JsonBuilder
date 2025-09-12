@@ -1,109 +1,177 @@
+# Импортируем модуль для открытия веб-браузера
 import webbrowser
 
-#the Translator of json to html
-class Translator:
-
-    #initialization
-    def __init__(self):
-
-        #the global output html code
-        self.html = '<html><head>$HEAD</head><body>$BODY</body></html>'
-
-        #pre html code list
+# Определяем класс Builder для построения страниц
+class Builder:
+    # Конструктор класса с именем страницы, подзаголовком и режимом отладки
+    def __init__(self, page_name, page_subname, debug=False):
+        # Запоминаем флаг отладки
+        self.debug = debug
+        # Инициализация имени файла пустой строкой
+        self.fname = ''
+        # Создаем структуру JSON с метками и пустыми HTML/ CSS блоками
+        self.json = {"label": page_name, "describe": page_subname, "html": {}, "css": {}}
+        # Инициализируем список для временного хранения элементов страницы
         self.pre = []
+        # Шаблон HTML страницы с плейсхолдерами для HEAD и BODY
+        self.html = '<html><head>$HEAD</head><body><jsonbuild>$BODY</body></html>'
+        # Шаблон CSS с плейсхолдерами для разных свойств элементов
+        self.css = '<style>#name{background-color:$name.background-color$;font-size:$name.font-size$;margin-bottom:$name.margin-bottom$;margin-left:$name.margin-left$;}#subname{background-color:$subname.background-color$;font-size:$subname.font-size$;margin-top:$subname.margin-top$;margin-left:$subname.margin-left$;}#info{font-size:$info.font-size$;margin-left:$info.margin-left$;margin-right:$info.margin-right$;background-color:$info.background-color$}body{background-color:$body.background-color$;}img{border-radius:$img.border-radius$;height:$img.height$;width:$img.width$;margin-left:$img.margin-left$}img:hover{height:$img:hover.height$;width:$img:hover.width$;}a{color:$a.color$;margin-left:$a.margin-left$;margin-bottom:$a.margin-bottom$}#label{text-align:$label.text-align$}</style>'
 
-    #compiling the pre html code list
-    def CompilePre(self, json):
+    # Инициализация списков для разных типов HTML блоков
+    def _setDivs(self):
+        # Список для блоков с изображениями
+        self.json["html"]["div_png"] = []
+        # Список для текстовых блоков
+        self.json["html"]["div_text"] = []
+        # Список для ссылок
+        self.json["html"]["div_link"] = []
 
-        #project label
-        self.pre.append(f"<h1 id='Name'>{json["title"]}</h1>")
+    # Установка начальных значений CSS свойств
+    def _setCss(self):
+        # Цвет фона имени
+        self.json["css"]["name.background-color"] = 'whitesmoke'
+        # Размер шрифта имени
+        self.json["css"]["name.font-size"] = '600%'
+        # Отступ снизу имени
+        self.json["css"]["name.margin-bottom"] = '0px'
+        # Отступ слева имени
+        self.json["css"]["name.margin-left"] = '4%'
+        # Цвет фона подназвания
+        self.json["css"]["subname.background-color"] = 'ghostwhite'
+        # Размер шрифта подназвания
+        self.json["css"]["subname.font-size"] = '300%'
+        # Отступ сверху подназвания
+        self.json["css"]["subname.margin-top"] = '0px'
+        # Отступ слева подназвания
+        self.json["css"]["subname.margin-left"] = '4%'
+        # Цвет фона информации
+        self.json["css"]["info.background-color"] = 'white'
+        # Отступ слева информации
+        self.json["css"]["info.margin-left"] = '0%'
+        # Отступ справа информации
+        self.json["css"]["info.margin-right"] = '0%'
+        # Размер шрифта информации
+        self.json["css"]["info.font-size"] = '25px'
+        # Цвет фона тела страницы
+        self.json["css"]["body.background-color"] = 'white'
+        # Высота изображений
+        self.json["css"]["img.height"] = '200px'
+        # Ширина изображений
+        self.json["css"]["img.width"] = '300px'
+        # Отступ слева у изображений
+        self.json["css"]["img.margin-left"] = '2%'
+        # Радиус скругления углов изображения
+        self.json["css"]["img.border-radius"] = '0%'
+        # Высота изображения при наведении курсора
+        self.json["css"]["img:hover.height"] = '220px'
+        # Ширина изображения при наведении курсора
+        self.json["css"]["img:hover.width"] = '320px'
+        # Цвет ссылок
+        self.json["css"]["a.color"] = 'black'
+        # Отступ слева у ссылок
+        self.json["css"]["a.margin-left"] = '4%'
+        # Отступ снизу у ссылок
+        self.json["css"]["a.margin-bottom"] = '4%'
+        # Выравнивание текста для label
+        self.json["css"]["label.text-align"] = 'center'
 
-        #project sublabel
-        self.pre.append(f"<h2 id='SubName'>{json["subtitle"]}</h2>")
+    # Добавление изображения в HTML блок div_png
+    def AddPng(self, src, tag=None):
+        self.json["html"]["div_png"].append({"src": src})
 
-        #hr
-        self.pre.append(f"<hr>")
+    # Добавление текстового блока с заголовком и описанием
+    def AddChapter(self, label, describe, tag=None):
+        self.json["html"]["div_text"].append({"label": label, "describe": describe})
 
-        #project png rectangle generic
-        self.pre.append(f"<div align='center'>")
-        for i in range(len(json["data"]["div_png"])):
-            self.pre.append(f'<img src="{json["data"]["div_png"][i]["src"]}">')
-        self.pre.append(f"</div>")
+    # Добавление ссылки с текстом и URL
+    def AddLink(self, label, href, tag=None):
+        self.json["html"]["div_link"].append({"label": label, "href": href})
 
-        #project text rectangle generic
-        for i in range(len(json["data"]["div_text"])):
-            self.pre.append(f"<div id='info' align='center'>")
-            self.pre.append(f"<h3>{json["data"]["div_text"][i]["label"]}</h3>")
-            self.pre.append(f"<h4>{json["data"]["div_text"][i]["text"]}</h4>")
-            self.pre.append(f"</div>")
+    # Создание элементов предварительного HTML кода для страницы
+    def _generatePre(self):
+        # Добавляем открывающий div
+        self.pre.append(f'<div>')
+        # Добавляем заголовок уровня 1 с id Name и текстом из json label
+        self.pre.append(f'<h1 id="Name">{self.json["label"]}</h1>')
+        # Добавляем заголовок уровня 2 с id SubName и текстом из json describe
+        self.pre.append(f'<h2 id="SubName">{self.json["describe"]}</h2>')
+        # Закрываем div
+        self.pre.append(f'</div>')
+        # Добавляем горизонтальную линию (хотя тег </hr> некорректен, скорее всего опечатка)
+        self.pre.append(f'</hr>')
+        # Добавляем открывающий div с выравниванием по центру
+        self.pre.append(f'<div align="center">')
+        # Для каждого изображения добавляем тег img с src из json
+        for i in range(len(self.json["html"]["div_png"])):
+            self.pre.append(f'<img src="{self.json["html"]["div_png"][i]["src"]}">')
+        # Закрываем div с изображениями
+        self.pre.append(f'</div>')
+        # Для каждого текстового блока (предполагается равенство длины с div_png)
+        for i in range(len(self.json["html"]["div_png"])):
+            # Открываем div с id info и выравниванием по ширине
+            self.pre.append(f'<div id="info" align="justify">')
+            # Добавляем заголовок 3-го уровня с id label и текстом label из div_text
+            self.pre.append(f'<h3 id="label">{self.json["html"]["div_text"][i]["label"]}</h3>')
+            # Добавляем заголовок 4-го уровня с описанием
+            self.pre.append(f'<h4>{self.json["html"]["div_text"][i]["describe"]}</h4>')
+            # Закрываем div
+            self.pre.append(f'</div>')
+        # Открываем div для ссылок
+        self.pre.append(f'<div>')
+        # Для каждой ссылки добавляем тег a с href и текстом
+        for i in range(len(self.json["html"]["div_link"])):
+            self.pre.append(f'<a href="{self.json["html"]["div_link"][i]["href"]}">{self.json["html"]["div_link"][i]["label"]}</a>')
+        # Закрываем div
+        self.pre.append(f'</div>')
 
-        #project link string generic
-        for i in range(len(json["data"]["div_link"])):
-            self.pre.append(f'<a href="{json["data"]["div_link"][i]["href"]}">{json["data"]["div_link"][i]["text"]}</a>')
+    # Заменяем плейсхолдеры в CSS шаблоне на значения из json
+    def _generateCss(self):
+        # Получаем список всех CSS ключей
+        elements = list(self.json["css"].keys())
+        # Проходим по каждому ключу и заменяем в шаблоне
+        for _, element in enumerate(elements):
+            # Если включена отладка, выводим текущий элемент и значение
+            if self.debug: print(f'{element}', self.json["css"][element])
+            # Заменяем плейсхолдеры в CSS на соответствующие значения
+            self.css = self.css.replace(f'${element}$', str(self.json["css"][element]))
 
-    #compiling pre to html
-    def CompileHtml(self):
+    # Генерируем окончательный HTML файл
+    def _generateHtml(self):
+        # Временная строка для сборки всего тела страницы
+        tmp = ''
+        # Конкатенируем все элементы из списка pre в одну строку
+        for element in self.pre:
+            tmp += element
+        # Заменяем плейсхолдер тела страницы на собранный HTML
+        self.html = self.html.replace('$BODY', tmp)
+        # Заменяем плейсхолдер шапки на сгенерированный CSS код
+        self.html = self.html.replace('$HEAD', self.css)
+        # Открываем файл с именем fname.html для записи в кодировке UTF-8
+        file = open(f'{self.fname}.html', 'w', encoding='utf-8')
+        # Записываем готовый HTML в файл
+        file.write(self.html)
 
-        #string object initizing
-        string = ''
+    # Основной метод для генерации страницы
+    def Build(self, html_func, css=None):
+        # Инициализируем списки div'ов
+        self._setDivs()
+        # Заполняем CSS значениями
+        self._setCss()
+        # Вызываем функцию, которая задает содержимое страницы (например, добавляет картинки, тексты)
+        html_func()
+        # Генерируем предварительный HTML-код страницы
+        self._generatePre()
+        # Генерируем CSS код
+        self._generateCss()
+        # Генерируем итоговый HTML файл
+        self._generateHtml()
+        # Открываем созданный HTML файл в браузере
+        webbrowser.open(f'{self.fname}.html')
 
-        #summ of all self.pre : list elements
-        for i, el in enumerate(self.pre): string += el
-
-        #entrance ( summ of all self.pre ) to main self.html
-        self.html = self.html.replace('$BODY', string)
-        self.html = self.html.replace('$HEAD', '<style>#Name{background-color:whitesmoke;font-size:600%;margin-bottom:0px;margin-left:4%;}#SubName{background-color:ghostwhite;font-size:300%;margin-top:0px;margin-left:4%;}#info{font-size:25px;background-color:white;}button{font-size:400%;background-size:500%;background-color:cyan;}button:hover{font-size:400%;background-size:500%;background-color:cyan;border-color:white;}body{background-color:white;}img{height:200px;width:300px;margin-left:2%}img:hover{height:220px;width:320px;}a{color:black;}</style>')
-
-#the json creating class
-class Project:
-
-    #initialization
-    def __init__(self, title, subtitle):
-        
-        #setup of json
-        self.json = {"title": title, "subtitle": subtitle, "data": {}}
-
-    #adding of main 3-rd divs
-    def SetDivs(self):
-
-        #div with png's
-        self.json["data"]["div_png"] = []
-        
-        #div with chapter's
-        self.json["data"]["div_text"] = []
-        
-        #div with link's
-        self.json["data"]["div_link"] = []
-    
-    #adding the dict png (src) construction
-    def AddPng(self, src):
-        self.json["data"]["div_png"].append({"src": src})
-        
-    #adding the dict chapter (label, text) construction
-    def AddChapter(self, label, text):
-        self.json["data"]["div_text"].append({"label": label, "text": text})
-
-    #adding the dict link (text, href) construction
-    def AddLink(self, text, href):
-        self.json["data"]["div_link"].append({"href": href, "text": text})
-
-    #project .html gen and finish function
-    def Finish(self):
-
-        #translator (executer) object intialization
-        translator = Translator()
-
-        #json -> html element list
-        translator.CompilePre(self.json)
-
-        #html element list ->  full html code
-        translator.CompileHtml()
-
-        #file creating
-        file = open('dist/index.html', 'w', encoding='utf-8')
-        file.write(translator.html)
-
-        #open
-        webbrowser.open('file:///C:/Users/admin/OneDrive/Desktop/JsonBuilder/dist/index.html')
-  
-
+    # Привязываем имя файла к имени функции и возвращаем её
+    def Generic(self, func):
+        # Устанавливаем имя файла в имя функции
+        self.fname = func.__name__
+        # Возвращаем оригинальную функцию без изменений
+        return func
